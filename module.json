@@ -1,0 +1,50 @@
+{
+   "id": "swade-better-usables",
+   "title": "SWADE Better Usables",
+   "description": "Better SWADE consumables and usables.",
+   "version": "#{VERSION}#",
+   "compatibility": {
+      "minimum": "14",
+      "verified": "14",
+      "maximum": "14"
+   },
+   "relationships": {
+      "systems": [
+         {
+            "id": "swade",
+            "type": "system",
+            "compatibility": {
+               "minimum": "6.0.4"
+            }
+         }
+      ],
+      "recommends": [
+         {
+            "id": "swade-hud",
+            "type": "module"
+         }
+      ],
+      "requires": [
+         {
+            "id": "swade-better-effects",
+            "type": "module"
+         },
+         {
+            "id": "swade-better-setting",
+            "type": "module"
+         }
+      ]
+   },
+   "esmodules": ["scripts/main.mjs"],
+   "styles": ["styles/usables.css"],
+   "languages": [
+      {
+         "lang": "en",
+         "name": "English",
+         "path": "lang/en.json"
+      }
+   ],
+   "url": "#{URL}#",
+   "manifest": "#{MANIFEST}#",
+   "download": "#{DOWNLOAD}#"
+}

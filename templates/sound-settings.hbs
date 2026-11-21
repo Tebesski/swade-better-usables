@@ -1,0 +1,30 @@
+<section>
+  <p class="notes">{{localize "SBC.SFXRuleHint"}}</p>
+  <div class="sbc-sound-rules">
+    {{#each rules}}
+      <fieldset data-rule="{{@index}}">
+        <legend>{{localize "SBC.SFXRule"}}</legend>
+        <div class="form-group">
+          <label for="{{@root.id}}-flags-{{@index}}">{{localize "SBC.Flags"}}</label>
+          <div class="form-fields">
+            <input type="text" id="{{@root.id}}-flags-{{@index}}" data-rule-flags value="{{expression}}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="{{@root.id}}-path-{{@index}}">{{localize "SBC.SoundPath"}}</label>
+          <div class="form-fields">
+            <input type="text" id="{{@root.id}}-path-{{@index}}" data-rule-path value="{{path}}">
+            <button type="button" class="icon fa-solid fa-file-import" data-action="pickSound"
+                    aria-label="{{localize 'SBC.BrowseAudio'}}" data-tooltip="SBC.BrowseAudio"></button>
+          </div>
+        </div>
+        <button type="button" class="invisible icon fa-solid fa-trash" data-action="removeRule"
+                aria-label="{{localize 'SBC.RemoveSFXRule'}}" data-tooltip="SBC.RemoveSFXRule"></button>
+      </fieldset>
+    {{/each}}
+  </div>
+  <footer class="form-footer">
+    <button type="button" data-action="addRule"><i class="fa-solid fa-plus" inert></i>{{localize "SBC.AddSFXRule"}}</button>
+    <button type="submit"><i class="fa-solid fa-floppy-disk" inert></i>{{localize "SBC.SaveSFX"}}</button>
+  </footer>
+</section>

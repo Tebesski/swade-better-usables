@@ -1,0 +1,200 @@
+.swade-item-sheet .sbc-consumable {
+  box-sizing: border-box;
+  padding-inline: 0.6rem;
+
+  .sbc-settings, .sbc-sound {
+    margin-block: 0.5rem;
+  }
+
+  .charge > .content, .sbc-behaviours, .sbc-behaviour-fields {
+    min-width: 0;
+  }
+
+  .sbc-behaviours, .sbc-behaviour-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .charges-list {
+    --sbc-control-height: 1.65rem;
+  }
+
+  .charge {
+    padding-block: 0.3rem;
+    padding-inline-end: 0.35rem;
+    align-items: flex-start;
+  }
+
+  .charge :is(.sort-handle, .charge-delete) .fa-2x {
+    font-size: 1.25em;
+  }
+
+  .charge .content, .charge .form-group {
+    gap: 0.2rem;
+    margin-block: 0;
+  }
+
+  .charge :is(input:not([type="checkbox"]), select, button:not(.charge-delete)) {
+    --input-height: var(--sbc-control-height);
+    --button-size: var(--sbc-control-height);
+    min-height: var(--sbc-control-height);
+    height: var(--sbc-control-height);
+    line-height: normal;
+  }
+
+  .sbc-behaviour {
+    position: relative;
+  }
+
+  .sbc-behaviour-fields {
+    padding: 0.25rem 0.35rem;
+  }
+
+  .sbc-behaviour-fields > :is(p, button) {
+    margin: 0;
+  }
+
+  .sbc-behaviour-fields > button:not(.sbc-remove) {
+    align-self: flex-start;
+  }
+
+  .sbc-behaviour > summary {
+    display: block;
+    cursor: pointer;
+    margin-inline-start: 0;
+    padding: 0.2rem 1.9rem 0.2rem 1.3rem;
+    border: 1px solid var(--sbs-line, var(--accent-color-secondary, var(--color-border, currentColor)));
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--sbs-accent, var(--color-text-accent, currentColor)) 13%, var(--input-background, transparent));
+    font-weight: 600;
+
+    &::before {
+      left: 0.45rem;
+      top: calc(50% - 0.4em);
+      transition: none;
+    }
+  }
+
+  .sbc-behaviours > button {
+    align-self: flex-start;
+  }
+
+  .sbc-remove {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0.2rem;
+    z-index: 1;
+  }
+
+  .sbc-effect-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  select[data-sbc-field="units"] {
+    min-width: 5.25rem;
+  }
+
+  .sbc-effect-drop {
+    display: flex;
+    align-items: center;
+    flex: 1 1 7rem;
+    min-width: 0;
+    gap: 0.25rem;
+    min-height: 1.75rem;
+    padding: 0.1rem 0.35rem;
+    border: 1px dashed var(--color-border, var(--accent-color-secondary));
+  }
+
+  .sbc-effect-link {
+    min-width: 0;
+    justify-content: flex-start;
+    text-align: start;
+  }
+
+  .sbc-effect-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sbc-effect-link img {
+    flex: none;
+    border: 0;
+    object-fit: contain;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .sbc-note-preview {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+.sbc-request-builder .sbe-request-recipients {
+  display: none;
+}
+
+.sbc-sound-rules {
+  display: grid;
+  gap: 0.5rem;
+  max-height: min(60vh, 38rem);
+  overflow-y: auto;
+
+  fieldset > button {
+    display: flex;
+    margin-inline-start: auto;
+  }
+}
+
+.sbc-dialog label.form-group > span {
+  flex: 0 0 5rem;
+}
+
+.sbc-shared {
+  margin-block-start: 0.35rem;
+}
+
+.sbc-use-choices > label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-block: 0.25rem;
+}
+
+.sbc-use-choices > label > span {
+  display: grid;
+  gap: 0.15rem;
+  white-space: pre-wrap;
+}
+
+.sbc-use-choices label:has(input:disabled) {
+  opacity: 0.6;
+}
+
+.swade-hud-element .sbc-hud-recharge {
+  background: none;
+  color: inherit;
+  border: 0;
+  padding: 0;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  line-height: inherit;
+}
+
+.swade-hud-shortcut-popup .usable-shortcut-summary {
+  display: block;
+  text-align: center;
+}
+
+.sbc-consumable :is(button, a), .swade .use-consumable,
+.sbc-dialog button, .sbc-sound-settings button, .sbc-request-builder button, .sbc-request-message .sbe-request-roll,
+.swade-hud-shortcut-popup .usable-actions button, .sbc-hud-recharge {
+  transition: none !important;
+  animation: none !important;
+}

@@ -1,0 +1,36 @@
+<fieldset class="sbc-shared">
+  <legend><label><input type="checkbox" data-sbc-pool="shared" {{checked pool}} {{disabled (not editable)}}> {{localize "SBC.SharedPool"}}</label></legend>
+  {{#if pool}}
+    <div class="form-group">
+      <label>{{localize "SWADE.Charges"}}</label>
+      <div class="form-fields">
+        <input type="number" data-sbc-pool="value" min="0" step="1" value="{{pool.value}}" required aria-label="{{localize 'SBC.CurrentCharges'}}" {{disabled (not editable)}}>
+        <strong class="flex-separator">/</strong>
+        <input type="number" data-sbc-pool="max" min="1" step="1" value="{{pool.max}}" required aria-label="{{localize 'SBC.MaxCharges'}}" {{disabled (not editable)}}>
+      </div>
+    </div>
+    <label class="form-group">
+      <span>{{localize "SWADE.RechargeType"}}</span>
+      <span class="form-fields">
+        <select data-sbc-pool="rechargeType" {{disabled (not editable)}}>
+          {{selectOptions chargeRechargeTypes selected=pool.rechargeType localize=true}}
+        </select>
+      </span>
+    </label>
+    {{#if canRecharge}}
+      <label class="form-group">
+        <span>{{localize "SWADE.RechargeAmount"}}</span>
+        <span class="form-fields">
+          <input type="text" data-sbc-pool="rechargeAmount" value="{{pool.rechargeAmount}}" placeholder="{{localize 'SWADE.Max'}}" {{disabled (not editable)}}>
+        <button type="button" class="icon fa-solid fa-rotate invisible" data-sbc-action="recharge-pool" aria-label="{{localize 'SWADE.Recharge'}}" {{disabled (not editable)}}></button>
+        </span>
+      </label>
+    {{/if}}
+  {{/if}}
+  {{#if (and editable (or encounter day))}}
+    <div class="flexrow">
+      {{#if encounter}}<button type="button" data-sbc-action="recharge-type" data-recharge-type="encounter">{{localize "SWADE.Encounter"}}</button>{{/if}}
+      {{#if day}}<button type="button" data-sbc-action="recharge-type" data-recharge-type="day">{{localize "SWADE.Day"}}</button>{{/if}}
+    </div>
+  {{/if}}
+</fieldset>

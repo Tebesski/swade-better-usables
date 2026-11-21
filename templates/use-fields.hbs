@@ -1,0 +1,12 @@
+<label class="form-group">
+  <span>{{localize "SBC.UseDescription"}}</span>
+  <textarea rows="2" data-sbc-use-field="description" {{disabled (not editable)}}>{{description}}</textarea>
+</label>
+<label class="form-group">
+  <span>{{localize "SBC.Consumes"}}</span>
+  <input type="number" data-sbc-use-field="cost" min="0" step="1" value="{{cost}}" required {{disabled (not editable)}}>
+</label>
+<label class="form-group">
+  <span>{{localize "SBC.SeparateCharges"}}</span>
+  <span class="form-fields"><input type="checkbox" data-sbc-use-field="separate" {{checked separate}} {{disabled (not editable)}}></span>
+</label>

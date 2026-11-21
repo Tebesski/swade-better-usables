@@ -1,0 +1,13 @@
+<fieldset class="sbc-sound">
+  <legend>{{localize "SBC.SFX"}}</legend>
+  <div class="form-group">
+    <label for="{{id}}">{{localize "SBC.SoundPath"}}</label>
+    <div class="form-fields">
+      <input type="text" id="{{id}}" data-sbc-field="sound" value="{{path}}" placeholder="{{localize "swade-better-usables.UI.sfxpotiondrink_4997079f39"}}" {{disabled (not editable)}}>
+      {{#if editable}}
+        <button type="button" class="icon fa-solid fa-file-import" data-sbc-action="browse"
+                aria-label="{{localize 'SBC.BrowseAudio'}}" data-tooltip="SBC.BrowseAudio" {{disabled (not canBrowse)}}></button>
+      {{/if}}
+    </div>
+  </div>
+</fieldset>

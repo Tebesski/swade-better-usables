@@ -1,0 +1,95 @@
+<section class="sbc-behaviours">
+  {{#each entries}}
+    <details class="sbc-behaviour" data-sbc-behaviour="{{id}}" {{#if open}}open{{/if}}>
+      <summary>{{localize label}}</summary>
+      <div class="sbc-behaviour-fields">
+        {{#if isEffect}}
+          <div class="sbc-effect-row">
+          <div class="sbc-effect-drop" data-sbc-drop>
+            {{#if effectName}}
+              {{#if effectUuid}}
+                <button type="button" class="sbc-effect-link invisible" data-sbc-action="open-effect">
+                  <img src="{{effectImg}}" alt="" width="24" height="24"><span>{{effectName}}</span>
+                </button>
+              {{else}}
+                <button type="button" class="sbc-effect-link invisible" data-sbc-action="build-effect" {{disabled (not (and @root.editable @root.canBuild))}}>
+                  <img src="{{effectImg}}" alt="" width="24" height="24"><span>{{effectName}}</span>
+                </button>
+              {{/if}}
+              {{#if @root.editable}}
+                <button type="button" class="invisible icon fa-solid fa-xmark" data-sbc-action="clear-effect"
+                        aria-label="{{localize 'SBC.ClearEffect'}}" data-tooltip="SBC.ClearEffect"></button>
+              {{/if}}
+            {{else}}
+              <span>{{localize "SBC.DropEffect"}}</span>
+            {{/if}}
+          </div>
+          {{#if (and @root.editable (or effectUuid (not effectSource)))}}
+            <button type="button" data-sbc-action="build-effect" {{disabled (not @root.canBuild)}}>{{localize "SBC.BuildEffect"}}</button>
+          {{/if}}
+          </div>
+          {{#if missing}}<p class="notes">{{localize "SBC.MissingEffect"}}</p>{{/if}}
+          <label class="form-group">
+            <span>{{localize "SBC.Duration"}}</span>
+            <span class="form-fields">
+              <input type="number" min="0" step="1" data-sbc-field="duration" value="{{duration}}"
+                     placeholder="—" data-tooltip="SBC.DurationDefault" {{disabled (not @root.editable)}}>
+              <select data-sbc-field="units" aria-label="{{localize 'SBC.DurationUnits'}}" {{disabled (not @root.editable)}}>
+                {{selectOptions @root.durationUnits selected=units localize=true}}
+              </select>
+            </span>
+          </label>
+        {{else if isNote}}
+          {{#if preview}}<p class="sbc-note-preview">{{preview}}</p>{{/if}}
+          {{#if @root.editable}}
+            <button type="button" data-sbc-action="edit-note">{{localize "SBC.EditNote"}}</button>
+          {{/if}}
+        {{else if isRequest}}
+          {{#if request.trait}}<p>{{request.trait}} {{localize "swade-better-usables.UI.TN_0de9573cc9"}} {{request.tn}}</p>{{/if}}
+          {{#if (and @root.editable @root.canRequest)}}
+            <button type="button" data-sbc-action="configure-request">{{localize "SBC.ConfigureRequest"}}</button>
+          {{else if @root.editable}}
+            <p class="notes">{{localize "SBC.RequestGM"}}</p>
+          {{/if}}
+        {{else if isMacro}}
+          <label class="form-group" data-sbc-drop="macro">
+            <span>{{localize "DOCUMENT.Macro"}}</span>
+            <span class="form-fields">
+              <select data-sbc-field="macroUuid" {{disabled (not @root.editable)}}>
+                {{selectOptions macros selected=macroUuid blank=(localize "SBC.ChooseMacro")}}
+              </select>
+            </span>
+          </label>
+        {{else if isRoll}}
+          <label class="form-group">
+            <span>{{localize "SBC.Formula"}}</span>
+            <span class="form-fields">
+              <input type="text" data-sbc-field="formula" value="{{formula}}" placeholder="{{localize "swade-better-usables.UI.1d6x210_67fd2a4423"}}" {{disabled (not @root.editable)}}>
+            </span>
+          </label>
+          <label class="form-group">
+            <span>{{localize "SWADE.Dmg"}}</span>
+            <span class="form-fields">
+              <input type="checkbox" data-sbc-field="damage" {{checked damage}} {{disabled (not @root.editable)}}>
+            </span>
+          </label>
+          <label class="form-group">
+            <span>{{localize "SBC.Flags"}}</span>
+            <span class="form-fields">
+              <input type="text" data-sbc-field="flags" value="{{flags}}" {{disabled (not @root.editable)}}>
+            </span>
+          </label>
+        {{/if}}
+        {{#if @root.editable}}
+          <button type="button" class="sbc-remove invisible icon fa-solid fa-trash" data-sbc-action="remove-behaviour"
+                  aria-label="{{localize 'SBC.RemoveBehaviour'}}" data-tooltip="SBC.RemoveBehaviour"></button>
+        {{/if}}
+      </div>
+    </details>
+  {{/each}}
+  {{#if editable}}
+    <button type="button" class="add-button invisible" data-sbc-action="add-behaviour">
+      <i class="fa-solid fa-plus" inert></i> {{localize "SBC.AddBehaviour"}}
+    </button>
+  {{/if}}
+</section>
