@@ -28,10 +28,14 @@ export async function postRoll(item, behaviour, notes, target) {
   if (!formula) throw new Error(loc("SBC.InvalidFormula"));
 
   const roll = behaviour.damage ? new CONFIG.Dice.DamageRoll(formula, data) : Roll.create(formula, data);
-  const activeTokens = actor?.getActiveTokens(false, true) ?? [];
-  const self = actor?.token ?? activeTokens.find(token => token.object?.controlled)
-    ?? (activeTokens.length === 1 ? activeTokens[0] : null);
-  const recipient = isCoating(item) ? null : target ?? self;
+  let recipient = null;
+  if (!isCoating(item)) {
+    recipient = target ?? actor?.token;
+    if (!recipient && actor) {
+      const activeTokens = actor.getActiveTokens(false, true);
+      recipient = activeTokens.find(token => token.object?.controlled) ?? (activeTokens.length === 1 ? activeTokens[0] : null);
+    }
+  }
   const targetUuids = recipient ? [recipient.uuid] : [];
   if (behaviour.damage) {
     roll.modifiers = [];
@@ -100,7 +104,8 @@ async function rollRequest(message, request) {
     return actor.makeUnskilledAttempt(options);
   }
 
-  const skill = actor.items.find(item => item.type === "skill" && traitName(item.name) === traitName(request.trait));
+  const trait = traitName(request.trait);
+  const skill = actor.items.find(item => item.type === "skill" && traitName(item.name) === trait);
   if (skill) return actor.rollSkill(skill.id, options);
   const temporary = new CONFIG.Item.documentClass({
     name: request.name,
@@ -118,26 +123,25 @@ async function renderNotes(message, container, notes) {
   section.setAttribute("aria-label", loc("SBC.Note"));
   section.tabIndex = 0;
   container.append(section);
+  const options = { secrets: false, relativeTo: message.speakerActor, rollData: message.getRollData(), embeds: false };
   for (const note of notes) {
     const entry = document.createElement("div");
     entry.className = "sbe-roll-note sbe-roll-note-body";
-    entry.innerHTML = await foundry.applications.ux.TextEditor.implementation.enrichHTML(cleanNote(note), {
-      secrets: false,
-      relativeTo: message.speakerActor,
-      rollData: message.getRollData(),
-      embeds: false
-    });
+    entry.innerHTML = await foundry.applications.ux.TextEditor.implementation.enrichHTML(cleanNote(note), options);
     section.append(entry);
   }
 }
 
 export function installChat() {
   Hooks.on("renderChatMessageHTML", (message, html) => {
-    if (!message.isContentVisible) return;
-    const container = html.querySelector(".message-content") ?? html;
     const { notes, tags, ordinaryRoll, request } = usableFlags(message);
-    if (notes?.length) renderNotes(message, container, notes).catch(error => console.error(MODULE_ID, error));
-    if (message.isRoll && (ordinaryRoll || tags?.length)) {
+    const showFlags = (ordinaryRoll || tags?.length) && message.isRoll;
+    if (!notes?.length && !showFlags && !request) return;
+    if (!message.isContentVisible) return;
+    if (notes?.length) {
+      renderNotes(message, html.querySelector(".message-content") ?? html, notes).catch(error => console.error(MODULE_ID, error));
+    }
+    if (showFlags && !html.querySelector(".sbe-chat-roll-flags")) {
       import("../../swade-better-effects/scripts/chat-flags.mjs").then(({ renderChatFlags }) => {
         if (html.querySelector(".sbe-chat-roll-flags")) return;
         const context = effectsAPI().getRollContext(message);

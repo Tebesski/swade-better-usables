@@ -2,6 +2,8 @@ import { LEGACY_ID, MODULE_ID, effectsAPI, flagPath, parseFlagGroups, updateUsab
 
 export const SOUND_RULES = "soundRules";
 const savingSounds = new WeakMap();
+const wildcardMatches = new Map();
+const WILDCARD_CACHE_MS = 10_000;
 
 export function soundRules() {
   const settings = game.settings.storage.get("world");
@@ -14,7 +16,7 @@ export function pickerPath(path) {
   return wildcard < 0 ? path : path.slice(0, path.lastIndexOf("/", wildcard) + 1);
 }
 
-async function matchingFiles(path) {
+async function browseMatchingFiles(path) {
   const Picker = CONFIG.ux.FilePicker;
   const picker = new Picker({ type: "audio", current: path });
   const { activeSource, extensions } = picker;
@@ -22,6 +24,24 @@ async function matchingFiles(path) {
   const target = Picker.matchS3URL(path)?.groups.key ?? path;
   const { files } = await Picker.browse(activeSource, target, { bucket, extensions, wildcard: true });
   return files ?? [];
+}
+
+function matchingFiles(path, refresh = false) {
+  const cached = wildcardMatches.get(path);
+  if (cached && (!refresh || !cached.expiry)) return cached.promise;
+  if (cached?.expiry) clearTimeout(cached.expiry);
+
+  const entry = { expiry: null };
+  entry.promise = browseMatchingFiles(path).then(files => {
+    if (files.length) entry.expiry = setTimeout(() => wildcardMatches.delete(path), WILDCARD_CACHE_MS);
+    else wildcardMatches.delete(path);
+    return files;
+  }, error => {
+    wildcardMatches.delete(path);
+    throw error;
+  });
+  wildcardMatches.set(path, entry);
+  return entry.promise;
 }
 
 export function parseSoundFlags(expression) {
@@ -41,7 +61,7 @@ export function soundForItem(item) {
 export async function cacheSoundMatches(path) {
   if (!path.includes("*") || !game.user.can("FILES_BROWSE")) return [];
   try {
-    return await matchingFiles(path);
+    return await matchingFiles(path, true);
   } catch (error) {
     ui.notifications.warn(error.message);
     return [];

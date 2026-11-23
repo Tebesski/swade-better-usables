@@ -1,5 +1,9 @@
 import { EFFECTS_ID, EFFECT_TYPE, MODULE_ID, effectsAPI, isCoating, parseFlagGroups, usableFlags } from "./data.mjs";
 
+const directoryItem = ".directory-item.document.item[data-entry-id]";
+const coatingDropZones = `[data-sbc-coating-actor] [data-item-id], #swade-hud-sidebar [data-item-id],
+  [data-sbc-coating-target], ${directoryItem}`;
+
 export function getCoatingEffects(item) {
   if (item?.documentName !== "Item" || item.type === EFFECT_TYPE) return [];
   return item.effects.filter(effect => {
@@ -29,8 +33,7 @@ export function coatingTargets(coating) {
     .sort((a, b) => a.name.localeCompare(b.name)).map(item => [item.uuid, item]));
 }
 
-function dropTarget(element) {
-  const grid = element.closest(".sgi-layout");
+function dropTarget(element, grid) {
   if (grid) {
     const tile = element.closest("[data-sgi-item]");
     if (!tile) return;
@@ -49,8 +52,12 @@ function dropTarget(element) {
   }
   const sheet = element.closest("[data-sbc-coating-target]");
   if (sheet) return foundry.utils.fromUuidSync(sheet.dataset.sbcCoatingTarget);
-  const entry = element.closest(".directory-item.document.item[data-entry-id]");
+  const entry = element.closest(directoryItem);
   if (entry) return game.items.get(entry.dataset.entryId);
+}
+
+function isDropZone(element, grid) {
+  return grid ? element.closest("[data-sgi-item]") : element.closest(coatingDropZones);
 }
 
 export function installCoatingDrops() {
@@ -59,9 +66,14 @@ export function installCoatingDrops() {
     if (app.document?.documentName === "Actor") html.dataset.sbcCoatingActor = app.document.uuid;
   });
   document.addEventListener("dragover", event => {
-    if (event.dataTransfer?.types.includes("text/plain") && dropTarget(event.target)) event.preventDefault();
+    if (!event.dataTransfer?.types.includes("text/plain") || !(event.target instanceof Element)) return;
+    // Native drags expose payload types during hover. Resolve documents only on drop.
+    if (isDropZone(event.target, event.target.closest(".sgi-layout"))) event.preventDefault();
   }, { capture: true });
   const onDrop = event => {
+    if (!(event.target instanceof Element)) return;
+    const grid = event.target.closest(".sgi-layout");
+    if (!isDropZone(event.target, grid)) return;
     const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
     if (data?.type !== "Item" || typeof data.uuid !== "string") return;
     let coating;
@@ -71,9 +83,9 @@ export function installCoatingDrops() {
       return;
     }
     if (!isCoating(coating) || !coating.isOwner || coating.compendium?.locked) return;
-    const target = dropTarget(event.target);
+    const target = dropTarget(event.target, grid);
     if (!target) return;
-    if (coating.uuid === target.uuid && event.target.closest(".sgi-layout")) return;
+    if (coating.uuid === target.uuid && grid) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (coating.uuid === target.uuid) return;

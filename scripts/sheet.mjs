@@ -4,7 +4,7 @@ import {
   targetNumber, updateUsable, usableFlags, useBehaviours
 } from "./data.mjs";
 import { pickerPath, setSound } from "./sound.mjs";
-import { macroOptions, resolveMacro } from "./macros.mjs";
+import { macroOptionResolver, resolveMacro } from "./macros.mjs";
 import { MANAGED, SHARED, rechargeUsable, sharedPool, useConfig } from "./pools.mjs";
 
 const openAccordions = new WeakMap();
@@ -52,8 +52,9 @@ async function addBehaviour(item, useId, open) {
   await updateUsable(item, { [`${flagPath}.uses.${useId}.${id}`]: { type } });
 }
 
-async function renderUse(app, charge, row, open) {
-  const item = app.document;
+async function renderUse(item, charge, row, { open, macroOptions, linkedEffects, ...context }) {
+  const fields = row.querySelector(".charge > .content");
+  if (!fields) return;
   const entries = await Promise.all(Object.entries(useBehaviours(item, charge.id)).map(async ([id, stored]) => {
     const entry = {
       ...stored, id, open: open.has(`${charge.id}:${id}`), label: BEHAVIOURS[stored.type],
@@ -61,10 +62,12 @@ async function renderUse(app, charge, row, open) {
       isRequest: stored.type === "request", isRoll: stored.type === "roll", isMacro: stored.type === "macro"
     };
     if (entry.isMacro) entry.macros = await macroOptions(entry.macroUuid);
-    if (stored.type === "effect") {
-      const effect = stored.effectUuid
-        ? await resolveEffect(stored.effectUuid).catch(() => null)
-        : stored.effectSource?.[0];
+    if (entry.isEffect) {
+      const { effectUuid } = stored;
+      if (effectUuid && !linkedEffects.has(effectUuid)) {
+        linkedEffects.set(effectUuid, resolveEffect(effectUuid).catch(() => null));
+      }
+      const effect = effectUuid ? await linkedEffects.get(effectUuid) : stored.effectSource?.[0];
       entry.effectName = effect?.name ?? stored.effectName;
       entry.effectImg = effect?.img ?? stored.effectImg;
       entry.missing = Boolean(stored.effectUuid && !effect);
@@ -76,18 +79,13 @@ async function renderUse(app, charge, row, open) {
     }
     return entry;
   }));
-  const html = await foundry.applications.handlebars.renderTemplate(`${TEMPLATE}/behaviours.hbs`, {
-    entries,
-    editable: app.isEditable,
-    canBuild: Item.canUserCreate(game.user),
-    canRequest: game.user.isGM,
-    durationUnits: DURATION_UNITS
-  });
-  const fields = row.querySelector(".charge > .content");
-  if (fields && MANAGED(item)) {
+  const html = await foundry.applications.handlebars.renderTemplate(`${TEMPLATE}/behaviours.hbs`, { ...context, entries });
+  if (MANAGED(item)) {
     const config = useConfig(item, charge.id);
-    for (const field of [sbsI18n("swade-better-usables.UI.rechargeType_f2a84ce76c"), "value", sbsI18n("swade-better-usables.UI.rechargeAmount_dded3caebe")]) {
-      if (!config.separate) fields.querySelector(`[name="charges.${charge.id}.${field}"]`)?.closest(".form-group")?.remove();
+    if (!config.separate) {
+      for (const field of ["rechargeType", "value", "rechargeAmount"]) {
+        fields.querySelector(`[name="charges.${charge.id}.${field}"]`)?.closest(".form-group")?.remove();
+      }
     }
     const recharge = fields.querySelector("[data-action=rechargeManual]");
     if (recharge) {
@@ -95,23 +93,23 @@ async function renderUse(app, charge, row, open) {
       recharge.dataset.sbcAction = "recharge-pool";
     }
     const settings = await foundry.applications.handlebars.renderTemplate(`${TEMPLATE}/use-fields.hbs`, {
-      ...config, editable: app.isEditable
+      ...config, editable: context.editable
     });
     fields.querySelector(`[name="charges.${charge.id}.name"]`)?.closest(".form-group")?.insertAdjacentHTML("afterend", settings);
   }
-  fields?.insertAdjacentHTML("beforeend", html);
-  for (const accordion of row.querySelectorAll(".sbc-behaviour")) {
-    accordion.addEventListener("toggle", () => {
-      if (!accordion.isConnected) return;
-      const key = `${charge.id}:${accordion.dataset.sbcBehaviour}`;
-      if (accordion.open) open.add(key);
-      else open.delete(key);
-    });
-  }
+  fields.insertAdjacentHTML("beforeend", html);
 }
 
 function bindEditor(app, html, open) {
   const item = app.document;
+  html.addEventListener("toggle", event => {
+    const accordion = event.target;
+    if (!accordion.isConnected || !accordion.matches(".sbc-behaviour")) return;
+    const row = accordion.closest("[data-charge-id]");
+    const key = `${row.dataset.chargeId}:${accordion.dataset.sbcBehaviour}`;
+    if (accordion.open) open.add(key);
+    else open.delete(key);
+  }, { capture: true });
   const getEntry = element => {
     const useId = element.closest("[data-charge-id]")?.dataset.chargeId;
     const id = element.closest("[data-sbc-behaviour]")?.dataset.sbcBehaviour;
@@ -358,11 +356,17 @@ async function renderConsumable(app, html, context) {
   if (!openAccordions.has(app)) openAccordions.set(app, new Set());
   const open = openAccordions.get(app);
   bindEditor(app, html, open);
+  const rows = new Map(Array.from(tab.querySelectorAll(".charges-list > li"), row => [row.dataset.chargeId, row]));
+  const useContext = {
+    open, macroOptions: macroOptionResolver(), linkedEffects: new Map(),
+    editable: app.isEditable, canBuild: Item.canUserCreate(game.user),
+    canRequest: game.user.isGM, durationUnits: DURATION_UNITS
+  };
   try {
     await Promise.all([
       ...app.document.system.charges.charges.map(charge => {
-        const row = [...tab.querySelectorAll(".charges-list > li")].find(row => row.dataset.chargeId === charge.id);
-        return row && renderUse(app, charge, row, open);
+        const row = rows.get(charge.id);
+        return row && renderUse(app.document, charge, row, useContext);
       }),
       foundry.applications.handlebars.renderTemplate(`${TEMPLATE}/sound.hbs`, {
         editable: app.isEditable,

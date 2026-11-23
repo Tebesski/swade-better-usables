@@ -15,22 +15,25 @@ export function useConfig(item, id) {
   return { cost: 1, separate: false, description: "", ...usableFlags(item).useConfig?.[id] };
 }
 
-export function usePool(item, use) {
-  return useConfig(item, use.id).separate ? use : sharedPool(item);
+export function usePool(item, use, config = useConfig(item, use.id)) {
+  return config.separate ? use : sharedPool(item);
 }
 
 function activePools(item) {
-  const separate = item.system.charges.charges.filter(use => useConfig(item, use.id).separate);
-  const usesShared = item.system.charges.charges.some(use => {
+  const separate = [];
+  let usesShared = false;
+  for (const use of item.system.charges.charges) {
     const config = useConfig(item, use.id);
-    return !config.separate && config.cost > 0;
-  });
-  return [usesShared && sharedPool(item), ...separate.map(use => ({ ...use }))].filter(Boolean);
+    if (config.separate) separate.push({ ...use });
+    else if (config.cost > 0) usesShared = true;
+  }
+  const shared = usesShared && sharedPool(item);
+  return shared ? [shared, ...separate] : separate;
 }
 
 export function describeUse(item, use, amount) {
   const config = useConfig(item, use.id);
-  const pool = usePool(item, use);
+  const pool = usePool(item, use, config);
   const cost = pool ? (amount ?? config.cost) : 0;
   return { ...config, id: use.id, name: use.name, pool, cost,
     available: item.system.quantity > 0 && (!pool || pool.value >= cost) };
@@ -42,18 +45,25 @@ export function chargeUpdates(item, use, amount) {
   const itemUpdates = {};
   if (pool && cost) {
     const pools = activePools(item);
-    const spent = pools.find(entry => entry.id === pool.id);
-    if (!spent) pools.push(pool);
-    (spent ?? pool).value -= cost;
+    let spent = pools.find(entry => entry.id === pool.id);
+    if (!spent) {
+      spent = pool;
+      pools.push(spent);
+    }
+    spent.value -= cost;
+    let changed = [spent];
     const depleted = pools.every(entry => entry.value === 0);
     let quantity = item.system.quantity;
     // An empty rechargeable item remains available to recharge unless configured to be destroyed.
     if (depleted && (quantity > 1 || item.system.destroyOnEmpty || pools.every(entry => entry.rechargeType === finite))) {
       quantity -= 1;
-      if (quantity > 0) for (const entry of pools) entry.value = entry.max;
+      if (quantity > 0) {
+        for (const entry of pools) entry.value = entry.max;
+        changed = pools;
+      }
       itemUpdates["system.quantity"] = quantity;
     }
-    Object.assign(itemUpdates, poolUpdates(item, pools));
+    Object.assign(itemUpdates, poolUpdates(item, changed));
   }
   return { cost, itemUpdates, actorUpdates: {}, resourceUpdates: [] };
 }
@@ -65,8 +75,8 @@ function poolUpdates(item, pools) {
     const { value, max, rechargeAmount, rechargeType } = shared;
     changes[`${flagPath}.sharedPool`] = { value, max, rechargeAmount: rechargeAmount ?? "", rechargeType };
   }
-  const separate = new Map(pools.filter(pool => pool.id !== SHARED).map(pool => [pool.id, pool]));
-  if (separate.size) {
+  if (pools.some(pool => pool.id !== SHARED)) {
+    const separate = new Map(pools.filter(pool => pool.id !== SHARED).map(pool => [pool.id, pool]));
     changes["system.charges.charges"] = item.system.charges.charges.map(use => separate.get(use.id) ?? use);
   }
   return changes;
@@ -115,13 +125,19 @@ export async function rechargeUsable(item, criteria) {
       }
       amounts.set(pool.id, amount);
     }
-    const current = rechargeablePools(item, criteria).filter(pool => amounts.has(pool.id));
-    for (const pool of current) pool.value = Math.min(pool.max, pool.value + amounts.get(pool.id));
-    if (current.length) {
-      const changes = poolUpdates(item, current);
-      if (item.system.quantity === 0 && current.some(pool => pool.value > 0)) changes["system.quantity"] = 1;
-      await updateUsable(item, changes);
+    const changed = [];
+    let restoresQuantity = false;
+    for (const pool of rechargeablePools(item, criteria)) {
+      if (!amounts.has(pool.id)) continue;
+      const value = Math.min(pool.max, pool.value + amounts.get(pool.id));
+      if (value > 0) restoresQuantity = true;
+      if (value === pool.value) continue;
+      pool.value = value;
+      changed.push(pool);
     }
+    const changes = poolUpdates(item, changed);
+    if (item.system.quantity === 0 && restoresQuantity) changes["system.quantity"] = 1;
+    if (Object.keys(changes).length) await updateUsable(item, changes);
   } finally {
     recharging.delete(item);
   }

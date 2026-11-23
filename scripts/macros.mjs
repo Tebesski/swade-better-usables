@@ -6,14 +6,17 @@ export async function resolveMacro(uuid) {
   return macro;
 }
 
-export async function macroOptions(uuid) {
-  const macros = game.macros.filter(macro => macro.canExecute);
-  const options = Object.fromEntries(macros.sort((a, b) => a.name.localeCompare(b.name))
-    .map(macro => [macro.uuid, macro.name]));
-  if (uuid && !Object.hasOwn(options, uuid)) {
-    options[uuid] = (await resolveMacro(uuid).catch(() => null))?.name ?? loc("SBC.MissingMacro");
-  }
-  return options;
+export function macroOptionResolver() {
+  let options;
+  const linked = new Map();
+  return async uuid => {
+    options ??= Object.fromEntries(game.macros.filter(macro => macro.canExecute)
+      .sort((a, b) => a.name.localeCompare(b.name)).map(macro => [macro.uuid, macro.name]));
+    if (!uuid || Object.hasOwn(options, uuid)) return options;
+    if (!linked.has(uuid)) linked.set(uuid, resolveMacro(uuid).catch(() => null));
+    const macro = await linked.get(uuid);
+    return { ...options, [uuid]: macro?.name ?? loc("SBC.MissingMacro") };
+  };
 }
 
 export async function executeMacro(uuid, item, use, charges, target) {

@@ -59,7 +59,11 @@ class SoundSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!expression || !path) throw new Error(loc("SBC.IncompleteSFXRule"));
         return { expression, path, groups: parseSoundFlags(expression) };
       });
-      for (const rule of rules) rule.matches = await cacheSoundMatches(rule.path);
+      const matchesByPath = new Map();
+      for (const rule of rules) {
+        if (!matchesByPath.has(rule.path)) matchesByPath.set(rule.path, await cacheSoundMatches(rule.path));
+        rule.matches = matchesByPath.get(rule.path);
+      }
       await game.settings.set(MODULE_ID, SOUND_RULES, rules);
       await this.close();
     } catch (error) {
